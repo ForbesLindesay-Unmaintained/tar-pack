@@ -2,6 +2,9 @@
 
 Package and un-package modules of some sort (in tar/gz bundles).  This is mostly useful for package managers.  Note that it doesn't check for or touch `package.json` so it can be used even if that's not the way you store your package info.
 
+[![Build Status](https://travis-ci.org/ForbesLindesay/tar-pack.png?branch=master)](https://travis-ci.org/ForbesLindesay/tar-pack)
+[![Dependency Status](https://gemnasium.com/ForbesLindesay/tar-pack.png)](https://gemnasium.com/ForbesLindesay/tar-pack)
+
 ## Installation
 
     $ npm install tar-pack
