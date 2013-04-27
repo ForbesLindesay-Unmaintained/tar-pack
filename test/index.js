@@ -1,9 +1,16 @@
 var tar = require('../')
 var path = require('path')
 var rfile = require('rfile')
+var rimraf = require('rimraf').sync;
 
 var assert = require('assert')
 
+beforeEach(function () {
+  rimraf(__dirname + '/output');
+})
+afterEach(function () {
+  rimraf(__dirname + '/output');
+})
 describe('unpack(tarball, directory, callback', function () {
   it('unpacks the tarball into the directory', function (done) {
     tar.unpack(__dirname + '/fixtures/packed.tar', __dirname + '/output/unpacked', function (err) {
