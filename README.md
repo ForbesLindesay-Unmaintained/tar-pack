@@ -50,4 +50,4 @@ Advanced Options (you probably don't need any of these):
 
 ## License
 
-  MIT
+  BSD
