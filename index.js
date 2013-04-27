@@ -1,16 +1,14 @@
-// commands for packing and unpacking tarballs
-// this file is used by lib/cache.js
+"use strict"
 
 var debug = require('debug')('tar-pack')
-var uidNumber = require("uid-number")
-var rm = require("rimraf")
-var tar = require("tar")
+var uidNumber = require('uid-number')
+var rm = require('rimraf')
+var tar = require('tar')
 var once = require('once')
+var fstream = require('fstream')
+var packer = require('fstream-ignore')
 
-var fstream = require("fstream")
-var packer = require("fstream-npm")
-
-var zlib = require("zlib")
+var zlib = require('zlib')
 var path = require('path')
 var fs
 try {
@@ -32,38 +30,68 @@ exports.pack = pack
 exports.unpack = unpack
 
 function pack(folder, tarball, options, cb) {
+  if (typeof cb != 'function') {
+    cb = options
+    options = undefined
+  }
   cb = once(cb)
-  packer({ path: folder, type: "Directory", isDirectory: true })
-    .on("error", function (er) {
-      if (er) debug('Error reading ' + folder)
+  options = options || {}
+  if (typeof folder === 'string') {
+
+    var filter = options.filter || function (entry) { return true; }
+
+    folder = packer({
+      path: folder,
+      type: 'Directory',
+      isDirectory: true,
+      ignoreFiles: options.ignoreFiles || ['.gitignore'],
+      filter: function (entry) { // {path, basename, dirname, type} (type is "Directory" or "File")
+        var basename = entry.basename
+        // some files are *never* allowed under any circumstances
+        // these files should always be either temporary files or
+        // version control related files
+        if (basename === '.git' || basename === '.lock-wscript' || basename.match(/^\.wafpickle-[0-9]+$/) ||
+            basename === 'CVS' || basename === '.svn' || basename === '.hg' || basename.match(/^\..*\.swp$/) ||
+            basename === '.DS_Store' ||  basename.match(/^\._/)) {
+          return false
+        }
+        //always exclude self
+        if (entry.path === path.resolve(tarball)) return false;
+        //custom excludes
+        return filter(entry)
+      }
+    })
+  }
+  folder
+    .on('error', function (er) {
+      if (er) debug('Error reading folder')
       return cb(er)
     })
-
     // By default, npm includes some proprietary attributes in the
     // package tarball.  This is sane, and allowed by the spec.
     // However, npm *itself* excludes these from its own package,
     // so that it can be more easily bootstrapped using old and
     // non-compliant tar implementations.
     .pipe(tar.Pack({ noProprietary: options.noProprietary || false }))
-    .on("error", function (er) {
+    .on('error', function (er) {
       if (er) debug('tar creation error ' + tarball)
       cb(er)
     })
     .pipe(zlib.Gzip())
-    .on("error", function (er) {
+    .on('error', function (er) {
       if (er) debug('gzip error ' + tarball)
       cb(er)
     })
-    .pipe(fstream.Writer({ type: "File", path: tarball }))
-    .on("error", function (er) {
+    .pipe(fstream.Writer({ type: 'File', path: tarball }))
+    .on('error', function (er) {
       if (er) debug('Could not write ' + tarball)
       cb(er)
     })
-    .on("close", cb)
+    .on('close', cb)
 }
 
 function unpack(tarball, unpackTarget, options, cb) {
-  if (typeof cb !== "function") cb = options, options = undefined
+  if (typeof cb !== 'function') cb = options, options = undefined
 
   cb = once(cb)
 
@@ -73,8 +101,8 @@ function unpack(tarball, unpackTarget, options, cb) {
   options = options || {}
   var gid = options.gid || null
   var uid = options.uid || null
-  var dmode = options.dmode || 0777 //npm.modes.exec
-  var fmode = options.fmode || 0666 //npm.modes.file
+  var dMode = options.dmode || 0x0777 //npm.modes.exec
+  var fMode = options.fmode || 0x0666 //npm.modes.file
   var defaultName = options.defaultName || (options.defaultName === false ? false : 'index.js')
 
   // figure out who we're supposed to be, if we're not pretending
@@ -111,22 +139,22 @@ function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName, cb) {
     // never create things that are user-unreadable,
     // or dirs that are user-un-listable. Only leads to headaches.
     var originalMode = entry.mode = entry.mode || entry.props.mode
-    entry.mode = entry.mode | (entry.type === "Directory" ? dMode : fMode)
+    entry.mode = entry.mode | (entry.type === 'Directory' ? dMode : fMode)
     entry.props.mode = entry.mode
     if (originalMode !== entry.mode) {
-      debug("modified mode %j", [entry.path, originalMode, entry.mode])
+      debug('modified mode %j', [entry.path, originalMode, entry.mode])
     }
 
     // if there's a specific owner uid/gid that we want, then set that
-    if (!win32 &&  typeof uid === "number" && typeof gid === "number") {
+    if (!win32 &&  typeof uid === 'number' && typeof gid === 'number') {
       entry.props.uid = entry.uid = uid
       entry.props.gid = entry.gid = gid
     }
   }
 
-  var extractOpts = { type: "Directory", path: target, strip: 1 }
+  var extractOpts = { type: 'Directory', path: target, strip: 1 }
 
-  if (!win32 && typeof uid === "number" && typeof gid === "number") {
+  if (!win32 && typeof uid === 'number' && typeof gid === 'number') {
     extractOpts.uid = uid
     extractOpts.gid = gid
   }
@@ -141,7 +169,7 @@ function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName, cb) {
   }
 
 
-  fst.on("error", function (er) {
+  fst.on('error', function (er) {
     if (er) debug('error reading ' + tarball)
     cb(er)
   })
@@ -151,7 +179,7 @@ function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName, cb) {
     if (type === 'gzip') {
       fst = fst
         .pipe(zlib.Unzip())
-        .on("error", function (er) {
+        .on('error', function (er) {
           if (er) debug('unzip error ' + tarball)
           cb(er)
         })
@@ -160,33 +188,34 @@ function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName, cb) {
     if (type === 'tar') {
       fst
         .pipe(tar.Extract(extractOpts))
-        .on("entry", fixEntry)
-        .on("error", function (er) {
+        .on('entry', fixEntry)
+        .on('error', function (er) {
           if (er) debug('untar error ' + tarball)
           cb(er)
         })
-        .on("close", function () {
+        .on('close', function () {
           cb(null, 'directory')
         })
       return
     }
-    if (type === 'naked-file' && options.defaultName) {
+    if (type === 'naked-file' && defaultName) {
       var jsOpts = { path: path.resolve(target, defaultName) }
 
-      if (!win32 && typeof uid === "number" && typeof gid === "number") {
+      if (!win32 && typeof uid === 'number' && typeof gid === 'number') {
         jsOpts.uid = uid
         jsOpts.gid = gid
       }
 
       fst
         .pipe(fstream.Writer(jsOpts))
-        .on("error", function (er) {
-          if (er) log.error("tar.unpack", "copy error "+tarball)
+        .on('error', function (er) {
+          if (er) log.error('tar.unpack', 'copy error '+tarball)
           cb(er)
         })
-        .on("close", function () {
+        .on('close', function () {
           cb(null, 'file')
         })
+      return
     }
 
     return cb(new Error('Unrecognised package type'));
@@ -209,7 +238,8 @@ function type(stream, callback) {
     // gzipped files all start with 1f8b08
     if (chunk[0] === 0x1F && chunk[1] === 0x8B && chunk[2] === 0x08) {
       callback(null, 'gzip')
-    } else if (chunk.toString().match(/^package\//)) {
+    } else if (chunk.toString().match(/^package\/\u0000/)) {
+      // note, this will only pick up on tarballs with a root directory called package
       callback(null, 'tar')
     } else {
       callback(null, 'naked-file')

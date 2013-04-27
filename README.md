@@ -8,13 +8,21 @@ Package and un-package modules of some sort (in tar/gz bundles).  This is mostly
 
 ## API
 
-### pack(folder, tarball, [options,] cb)
+### pack(folder|packer, tarball, [options,] cb)
 
-Pack the folder at `folder` into a gzipped tarball located at `tarball` then call cb with an optional error.
+Pack the folder at `folder` into a gzipped tarball located at `tarball` then call cb with an optional error.  Files ignored by `.gitignore` will not be in the package.
+
+You can optionally pass a `fstream.DirReader` directly, instead of folder.  For example, to create an npm package, do:
+
+```js
+pack(require("fstream-npm")(folder), tarball, [options], cb)
+```
 
 Options:
 
  - `noProprietary` (defaults to `false`) Set this to `true` to prevent any proprietary attributes being added to the tarball.  These attributes are allowed by the spec, but may trip up some poorly written tarball parsers.
+ - `ignoreFiles` (defaults to `['.gitignore']`) These files can specify files to be excluded from the package using the syntax of `.gitignore`.  This option is ignored if you parse a `fstream.DirReader` instead of a string for folder.
+ - `filter` (defaults to `entry => true`) A function that takes an entry and returns `true` if it should be included in the package and `false` if it should not.  Entryies are of the form `{path, basename, dirname, type}` where (type is "Directory" or "File").  This function is ignored if you parse a `fstream.DirReader` instead of a string for folder.
 
 ### unpack(tarball, folder, [options,] cb)
 
