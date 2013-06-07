@@ -8,6 +8,7 @@ var once = require('once')
 var fstream = require('fstream')
 var packer = require('fstream-ignore')
 
+var PassThrough = require('stream').PassThrough || require('readable-stream').PassThrough
 var zlib = require('zlib')
 var path = require('path')
 var fs
@@ -29,12 +30,7 @@ if (process.env.SUDO_UID && myUid === 0) {
 exports.pack = pack
 exports.unpack = unpack
 
-function pack(folder, tarball, options, cb) {
-  if (typeof cb != 'function') {
-    cb = options
-    options = undefined
-  }
-  cb = once(cb)
+function pack(folder, options) {
   options = options || {}
   if (typeof folder === 'string') {
 
@@ -55,45 +51,43 @@ function pack(folder, tarball, options, cb) {
             basename === '.DS_Store' ||  basename.match(/^\._/)) {
           return false
         }
-        //always exclude self
-        if (entry.path === path.resolve(tarball)) return false;
         //custom excludes
         return filter(entry)
       }
     })
   }
+  // By default, npm includes some proprietary attributes in the
+  // package tarball.  This is sane, and allowed by the spec.
+  // However, npm *itself* excludes these from its own package,
+  // so that it can be more easily bootstrapped using old and
+  // non-compliant tar implementations.
+  var tarPack = tar.Pack({ noProprietary: options.noProprietary || false })
+  var gzip = zlib.Gzip()
+
   folder
     .on('error', function (er) {
       if (er) debug('Error reading folder')
-      return cb(er)
+      return gzip.emit('error', er)
     })
-    // By default, npm includes some proprietary attributes in the
-    // package tarball.  This is sane, and allowed by the spec.
-    // However, npm *itself* excludes these from its own package,
-    // so that it can be more easily bootstrapped using old and
-    // non-compliant tar implementations.
-    .pipe(tar.Pack({ noProprietary: options.noProprietary || false }))
+  tarPack
     .on('error', function (er) {
-      if (er) debug('tar creation error ' + tarball)
-      cb(er)
+      if (er) debug('tar creation error')
+      gzip.emit('error', er)
     })
-    .pipe(zlib.Gzip())
-    .on('error', function (er) {
-      if (er) debug('gzip error ' + tarball)
-      cb(er)
-    })
-    .pipe(fstream.Writer({ type: 'File', path: tarball }))
-    .on('error', function (er) {
-      if (er) debug('Could not write ' + tarball)
-      cb(er)
-    })
-    .on('close', cb)
+  return folder.pipe(tarPack).pipe(gzip)
 }
 
-function unpack(tarball, unpackTarget, options, cb) {
-  if (typeof cb !== 'function') cb = options, options = undefined
+function unpack(unpackTarget, options, cb) {
+  if (typeof options === 'function' && cb === undefined) cb = options, options = undefined
 
-  cb = once(cb)
+  var tarball = new PassThrough()
+  if (typeof cb === 'function') {
+    cb = once(cb)
+    tarball.on('error', cb)
+    tarball.on('close', function () {
+      cb()
+    })
+  }
 
   var parent = path.dirname(unpackTarget)
   var base = path.basename(unpackTarget)
@@ -114,25 +108,30 @@ function unpack(tarball, unpackTarget, options, cb) {
 
   var pending = 2
   uidNumber(uid, gid, function (er, uid, gid) {
-    if (er) return cb(er)
+    if (er) {
+      tarball.emit('error', er)
+      return tarball.end()
+    }
     if (0 === --pending) next()
   })
   rm(unpackTarget, function (er) {
-    if (er) return cb(er)
+    if (er) {
+      tarball.emit('error', er)
+      return tarball.end()
+    }
     if (0 === --pending) next()
   })
   function next() {
     // gzip {tarball} --decompress --stdout \
     //   | tar -mvxpf - --strip-components=1 -C {unpackTarget}
-    gunzTarPerm(tarball, unpackTarget, dMode, fMode, uid, gid, defaultName, cb)
+    gunzTarPerm(tarball, unpackTarget, dMode, fMode, uid, gid, defaultName)
   }
+  return tarball
 }
 
 
-function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName, cb) {
+function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName) {
   debug('modes %j', [dMode.toString(8), fMode.toString(8)])
-
-  var fst = fs.createReadStream(tarball)
 
   function fixEntry(entry) {
     debug('fixEntry %j', entry.path)
@@ -169,32 +168,28 @@ function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName, cb) {
   }
 
 
-  fst.on('error', function (er) {
-    if (er) debug('error reading ' + tarball)
-    cb(er)
-  })
-
-  type(fst, function (err, type) {
-    if (err) return cb(err);
+  type(tarball, function (err, type) {
+    if (err) return tarball.emit('error', err)
+    var strm = tarball
     if (type === 'gzip') {
-      fst = fst
-        .pipe(zlib.Unzip())
-        .on('error', function (er) {
-          if (er) debug('unzip error ' + tarball)
-          cb(er)
+
+      strm = strm.pipe(zlib.Unzip())
+      strm.on('error', function (er) {
+          if (er) debug('unzip error')
+          tarball.emit('error', er)
         })
       type = 'tar'
     }
     if (type === 'tar') {
-      fst
+      strm
         .pipe(tar.Extract(extractOpts))
         .on('entry', fixEntry)
         .on('error', function (er) {
-          if (er) debug('untar error ' + tarball)
-          cb(er)
+          if (er) debug('untar error')
+          tarball.emit('error', er)
         })
         .on('close', function () {
-          cb(null, 'directory')
+          tarball.emit('close')
         })
       return
     }
@@ -206,14 +201,14 @@ function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName, cb) {
         jsOpts.gid = gid
       }
 
-      fst
+      strm
         .pipe(fstream.Writer(jsOpts))
         .on('error', function (er) {
-          if (er) log.error('tar.unpack', 'copy error '+tarball)
-          cb(er)
+          if (er) debug('copy error')
+          tarball.emit('error', er)
         })
         .on('close', function () {
-          cb(null, 'file')
+          tarball.emit('close')
         })
       return
     }
@@ -226,7 +221,6 @@ function type(stream, callback) {
   stream.on('error', handle)
   stream.on('data', parse)
   function handle(err) {
-    callback(err)
     stream.removeListener('data', parse)
     stream.removeListener('error', handle)
   }
@@ -248,6 +242,6 @@ function type(stream, callback) {
     // now un-hook, and re-emit the chunk
     stream.removeListener('data', parse)
     stream.removeListener('error', handle)
-    stream.emit('data', chunk)
+    stream.unshift(chunk)
   }
 }

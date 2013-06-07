@@ -11,14 +11,14 @@ Package and un-package modules of some sort (in tar/gz bundles).  This is mostly
 
 ## API
 
-### pack(folder|packer, tarball, [options,] cb)
+### pack(folder|packer, [options])
 
-Pack the folder at `folder` into a gzipped tarball located at `tarball` then call cb with an optional error.  Files ignored by `.gitignore` will not be in the package.
+Pack the folder at `folder` into a gzipped tarball and return the tgz as a stream.  Files ignored by `.gitignore` will not be in the package.
 
 You can optionally pass a `fstream.DirReader` directly, instead of folder.  For example, to create an npm package, do:
 
 ```js
-pack(require("fstream-npm")(folder), tarball, [options], cb)
+pack(require("fstream-npm")(folder), [options])
 ```
 
 Options:
@@ -27,9 +27,24 @@ Options:
  - `ignoreFiles` (defaults to `['.gitignore']`) These files can specify files to be excluded from the package using the syntax of `.gitignore`.  This option is ignored if you parse a `fstream.DirReader` instead of a string for folder.
  - `filter` (defaults to `entry => true`) A function that takes an entry and returns `true` if it should be included in the package and `false` if it should not.  Entryies are of the form `{path, basename, dirname, type}` where (type is "Directory" or "File").  This function is ignored if you parse a `fstream.DirReader` instead of a string for folder.
 
-### unpack(tarball, folder, [options,] cb)
+Example:
 
-Unpack the tarball at `tarball into a folder at `folder`.  N.B. the output folder will be removed first if it already exists.
+```js
+var write = require('fs').createWriteStream
+var pack = require('tar-pack').pack
+pack(process.cwd())
+  .pipe(write(__dirname + '/package.tar.gz'))
+  .on('error', function (err) {
+    console.error(err.stack)
+  })
+  .on('close', function () {
+    console.log('done')
+  })
+```
+
+### unpack(folder, [options,] cb)
+
+Return a stream that unpacks a tarball into a folder at `folder`.  N.B. the output folder will be removed first if it already exists.
 
 The callback is called with an optional error and, as its second argument, a string which is one of:
 
@@ -47,6 +62,18 @@ Advanced Options (you probably don't need any of these):
  - `dmode` - (defaults to `0777`) The mode to use when creating directories
  - `fmode` - (defaults to `0666`) The mode to use when creating files
  - `unsafe` - (defaults to `false`) (on non win32 OSes it overrides `gid` and `uid` with the current processes IDs)
+
+Example:
+
+```js
+var read = require('fs').createReadStream
+var unpack = require('tar-pack').unpack
+read(process.cwd() + '/package.tar.gz')
+  .pipe(unpack(__dirname + '/package/', function (err) {
+    if (err) console.error(err.stack)
+    else console.log('done')
+  }))
+```
 
 ## License
 
