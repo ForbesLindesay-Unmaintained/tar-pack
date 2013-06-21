@@ -4,6 +4,7 @@ Package and un-package modules of some sort (in tar/gz bundles).  This is mostly
 
 [![Build Status](https://travis-ci.org/ForbesLindesay/tar-pack.png?branch=master)](https://travis-ci.org/ForbesLindesay/tar-pack)
 [![Dependency Status](https://gemnasium.com/ForbesLindesay/tar-pack.png)](https://gemnasium.com/ForbesLindesay/tar-pack)
+[![NPM version](https://badge.fury.io/js/tar-pack.png)](http://badge.fury.io/js/tar-pack)
 
 ## Installation
 
