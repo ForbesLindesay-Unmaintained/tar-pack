@@ -11,7 +11,7 @@
   },
   "license": "BSD",
   "optionalDependencies": {
-    "graceful-fs": "1.2"
+    "graceful-fs": "4.1"
   },
   "dependencies": {
     "uid-number": "0.0.3",
