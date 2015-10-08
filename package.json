@@ -10,10 +10,8 @@
     "url": "https://github.com/ForbesLindesay/tar-pack.git"
   },
   "license": "BSD",
-  "optionalDependencies": {
-    "graceful-fs": "4.1"
-  },
   "dependencies": {
+    "graceful-fs": "4.1",
     "uid-number": "0.0.3",
     "once": "~1.1.1",
     "debug": "~0.7.2",
