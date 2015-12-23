@@ -3,8 +3,8 @@
 Package and un-package modules of some sort (in tar/gz bundles).  This is mostly useful for package managers.  Note that it doesn't check for or touch `package.json` so it can be used even if that's not the way you store your package info.
 
 [![Build Status](https://img.shields.io/travis/ForbesLindesay/tar-pack/master.svg)](https://travis-ci.org/ForbesLindesay/tar-pack)
-[![Dependency Status](https://img.shields.io/gemnasium/ForbesLindesay/tar-pack.svg)](https://gemnasium.com/ForbesLindesay/tar-pack)
-[![NPM version](https://img.shields.io/npm/v/tar-pack.svg)](http://badge.fury.io/js/tar-pack)
+[![Dependency Status](https://img.shields.io/david/ForbesLindesay/tar-pack.svg)](https://david-dm.org/ForbesLindesay/tar-pack)
+[![NPM version](https://img.shields.io/npm/v/tar-pack.svg)](https://www.npmjs.com/package/tar-pack)
 
 ## Installation
 
