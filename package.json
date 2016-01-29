@@ -9,16 +9,16 @@
     "type": "git",
     "url": "https://github.com/ForbesLindesay/tar-pack.git"
   },
-  "license": "BSD",
+  "license": "BSD-2-Clause",
   "dependencies": {
-    "uid-number": "0.0.3",
-    "once": "~1.1.1",
-    "debug": "~0.7.2",
-    "rimraf": "~2.4.4",
+    "debug": "~2.2.0",
     "fstream": "~1.0.8",
-    "tar": "~2.2.1",
     "fstream-ignore": "~1.0.3",
-    "readable-stream": "~2.0.4"
+    "once": "~1.3.3",
+    "readable-stream": "~2.0.4",
+    "rimraf": "~2.5.1",
+    "tar": "~2.2.1",
+    "uid-number": "~0.0.6"
   },
   "devDependencies": {
     "mocha": "*",
