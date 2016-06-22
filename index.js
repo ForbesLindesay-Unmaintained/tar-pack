@@ -92,6 +92,7 @@ function unpack(unpackTarget, options, cb) {
   var dMode = options.dmode || 0x0777 //npm.modes.exec
   var fMode = options.fmode || 0x0666 //npm.modes.file
   var defaultName = options.defaultName || (options.defaultName === false ? false : 'index.js')
+  var strip = (options.strip !== undefined) ? options.strip : 1
 
   // figure out who we're supposed to be, if we're not pretending
   // to be a specific user.
@@ -117,14 +118,14 @@ function unpack(unpackTarget, options, cb) {
   })
   function next() {
     // gzip {tarball} --decompress --stdout \
-    //   | tar -mvxpf - --strip-components=1 -C {unpackTarget}
-    gunzTarPerm(tarball, unpackTarget, dMode, fMode, uid, gid, defaultName)
+    //   | tar -mvxpf - --strip-components={strip} -C {unpackTarget}
+    gunzTarPerm(tarball, unpackTarget, dMode, fMode, uid, gid, defaultName, strip)
   }
   return tarball
 }
 
 
-function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName) {
+function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName, strip) {
   debug('modes %j', [dMode.toString(8), fMode.toString(8)])
 
   function fixEntry(entry) {
@@ -145,7 +146,7 @@ function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName) {
     }
   }
 
-  var extractOpts = { type: 'Directory', path: target, strip: 1 }
+  var extractOpts = { type: 'Directory', path: target, strip: strip }
 
   if (!win32 && typeof uid === 'number' && typeof gid === 'number') {
     extractOpts.uid = uid
