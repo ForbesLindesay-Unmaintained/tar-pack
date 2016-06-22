@@ -64,6 +64,7 @@ Advanced Options (you probably don't need any of these):
  - `dmode` - (defaults to `0777`) The mode to use when creating directories
  - `fmode` - (defaults to `0666`) The mode to use when creating files
  - `unsafe` - (defaults to `false`) (on non win32 OSes it overrides `gid` and `uid` with the current processes IDs)
+ - `strip` - (defaults to `1`) Number of path segments to strip from the root when extracting
 
 Example:
 
