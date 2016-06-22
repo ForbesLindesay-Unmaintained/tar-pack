@@ -23,6 +23,16 @@ describe('tarball.pipe(unpack(directory, callback))', function () {
       done()
     }))
   })
+  it('unpacks the tarball into the directory without deleting existing files', function (done) {
+    read(__dirname + '/fixtures/packed-file.txt').pipe(tar.unpack(__dirname + '/output/unpacked', function (err) {
+      if (err) return done(err)
+      read(__dirname + '/fixtures/packed.tar').pipe(tar.unpack(__dirname + '/output/unpacked', {keepFiles: true}, function (err) {
+        if (err) return done(err)
+        assert.equal(rfile('./output/unpacked/index.js'), rfile('./fixtures/packed-file.txt'))
+        done()
+      }))
+    }))
+  })
 })
 describe('tarball.pipe(unpack(directory, { strip: 0 }, callback))', function () {
   it('unpacks the tarball into the directory with subdir package', function (done) {
