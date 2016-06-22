@@ -55,7 +55,7 @@ function pack(folder, options) {
   // However, npm *itself* excludes these from its own package,
   // so that it can be more easily bootstrapped using old and
   // non-compliant tar implementations.
-  var tarPack = tar.Pack({ noProprietary: options.noProprietary || false })
+  var tarPack = tar.Pack({ noProprietary: options.noProprietary || false, fromBase: options.fromBase || false })
   var gzip = zlib.Gzip()
 
   folder

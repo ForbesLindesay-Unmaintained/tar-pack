@@ -25,6 +25,7 @@ pack(require("fstream-npm")(folder), [options])
 Options:
 
  - `noProprietary` (defaults to `false`) Set this to `true` to prevent any proprietary attributes being added to the tarball.  These attributes are allowed by the spec, but may trip up some poorly written tarball parsers.
+ - `fromBase` (defaults to `false`) Set this to `true` to make sure your tarballs root is the directory you pass in.
  - `ignoreFiles` (defaults to `['.gitignore']`) These files can specify files to be excluded from the package using the syntax of `.gitignore`.  This option is ignored if you parse a `fstream.DirReader` instead of a string for folder.
  - `filter` (defaults to `entry => true`) A function that takes an entry and returns `true` if it should be included in the package and `false` if it should not.  Entryies are of the form `{path, basename, dirname, type}` where (type is "Directory" or "File").  This function is ignored if you parse a `fstream.DirReader` instead of a string for folder.
 
