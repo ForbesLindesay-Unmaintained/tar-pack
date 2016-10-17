@@ -65,6 +65,7 @@ Advanced Options (you probably don't need any of these):
  - `fmode` - (defaults to `0666`) The mode to use when creating files
  - `unsafe` - (defaults to `false`) (on non win32 OSes it overrides `gid` and `uid` with the current processes IDs)
  - `strip` - (defaults to `1`) Number of path segments to strip from the root when extracting
+ - `keepFiles` - (defaults to `false`) Set this to `true` to prevent target directory to be removed. Extracted files overwrite existing files.
 
 Example:
 
