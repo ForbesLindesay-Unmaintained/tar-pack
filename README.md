@@ -1,5 +1,7 @@
 # Tar Pack
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/ForbesLindesay/tar-pack.svg)](https://greenkeeper.io/)
+
 Package and un-package modules of some sort (in tar/gz bundles).  This is mostly useful for package managers.  Note that it doesn't check for or touch `package.json` so it can be used even if that's not the way you store your package info.
 
 [![Build Status](https://img.shields.io/travis/ForbesLindesay/tar-pack/master.svg)](https://travis-ci.org/ForbesLindesay/tar-pack)
