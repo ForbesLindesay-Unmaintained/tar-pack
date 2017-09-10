@@ -21,7 +21,7 @@
     "uid-number": "^0.0.6"
   },
   "devDependencies": {
-    "mocha": "*",
+    "mocha": ">=3.5.1",
     "rfile": "*",
     "mkdirp": "*"
   }
