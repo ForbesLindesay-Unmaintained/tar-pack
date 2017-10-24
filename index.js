@@ -211,7 +211,7 @@ function gunzTarPerm(tarball, target, dMode, fMode, uid, gid, defaultName, strip
       return
     }
 
-    return cb(new Error('Unrecognised package type'));
+    return tarball.emit('error', new Error('Unrecognised package type'));
   })
 }
 
